@@ -26,8 +26,8 @@ def is_true(strval):
     return bool(strtobool(strval or "0".lower()))
 
 
-sentinel_host = os.environ.get("ODOO_SESSION_REDIS_SENTINEL_HOST")
-sentinel_master_name = os.environ.get("ODOO_SESSION_REDIS_SENTINEL_MASTER_NAME")
+sentinel_host = os.environ.get('ODOO_SESSION_REDIS_SENTINEL_HOST')
+sentinel_master_name = os.environ.get('ODOO_SESSION_REDIS_SENTINEL_MASTER_NAME')
 if sentinel_host and not sentinel_master_name:
     raise Exception(
         "ODOO_SESSION_REDIS_SENTINEL_MASTER_NAME must be defined "
