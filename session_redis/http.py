@@ -26,21 +26,29 @@ def is_true(strval):
     return bool(strtobool(strval or '0'.lower()))
 
 
-sentinel_host = os.environ.get('ODOO_SESSION_REDIS_SENTINEL_HOST')
-sentinel_master_name = os.environ.get('ODOO_SESSION_REDIS_SENTINEL_MASTER_NAME')
+sentinel_host = os.environ.get('ODOO_SESSION_REDIS_SENTINEL_HOST', config.get(
+    'redis_sentinel_host'))
+sentinel_master_name = os.environ.get(
+    'ODOO_SESSION_REDIS_SENTINEL_MASTER_NAME',
+    config.get('redis_sentinel_master_name'))
 if sentinel_host and not sentinel_master_name:
     raise Exception(
         "ODOO_SESSION_REDIS_SENTINEL_MASTER_NAME must be defined "
         "when using session_redis"
     )
-sentinel_port = int(os.environ.get('ODOO_SESSION_REDIS_SENTINEL_PORT', 26379))
-host = os.environ.get('ODOO_SESSION_REDIS_HOST', 'localhost')
-port = int(os.environ.get('ODOO_SESSION_REDIS_PORT', 6379))
-prefix = os.environ.get('ODOO_SESSION_REDIS_PREFIX')
-url = os.environ.get('ODOO_SESSION_REDIS_URL')
-password = os.environ.get('ODOO_SESSION_REDIS_PASSWORD')
-expiration = os.environ.get('ODOO_SESSION_REDIS_EXPIRATION')
-anon_expiration = os.environ.get('ODOO_SESSION_REDIS_EXPIRATION_ANONYMOUS')
+sentinel_port = int(os.environ.get(
+    'ODOO_SESSION_REDIS_SENTINEL_PORT', config.get('redis_sentinel_port', 26379)))
+host = os.environ.get(
+    'ODOO_SESSION_REDIS_HOST', config.get('redis_host', 'localhost'))
+port = int(os.environ.get('ODOO_SESSION_REDIS_PORT', config.get('redis_port', 6379)))
+prefix = os.environ.get('ODOO_SESSION_REDIS_PREFIX', config.get('redis_prefix'))
+url = os.environ.get('ODOO_SESSION_REDIS_URL', config.get('redis_url'))
+password = os.environ.get('ODOO_SESSION_REDIS_PASSWORD', config.get('redis_password'))
+expiration = os.environ.get(
+    'ODOO_SESSION_REDIS_EXPIRATION', config.get('redis_expiration'))
+anon_expiration = os.environ.get(
+    'ODOO_SESSION_REDIS_EXPIRATION_ANONYMOUS',
+    config.get('redis_expiration_anonymous'))
 
 
 @lazy_property
@@ -68,7 +76,10 @@ def purge_fs_sessions(path):
             pass
 
 
-if is_true(os.environ.get('ODOO_SESSION_REDIS')):
+if redis and (
+        is_true(os.environ.get('ODOO_SESSION_REDIS'))
+        or config.get('session_redis')
+):
     if sentinel_host:
         _logger.debug("HTTP sessions stored in Redis with prefix '%s'. "
                       "Using Sentinel on %s:%s",
@@ -77,5 +88,6 @@ if is_true(os.environ.get('ODOO_SESSION_REDIS')):
         _logger.debug("HTTP sessions stored in Redis with prefix '%s' on "
                       "%s:%s", prefix or '', host, port)
     http.Application.session_store = session_store
-    # clean the existing sessions on the file system
-    purge_fs_sessions(config.session_dir)
+    if config.get('redis_purge_filesystem_sessions'):
+        # clean the existing sessions on the file system
+        purge_fs_sessions(config.session_dir)
