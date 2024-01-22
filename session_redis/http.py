@@ -4,13 +4,12 @@
 import logging
 import os
 
-from .strtobool import strtobool
-
 from odoo import http
 from odoo.tools import config
 from odoo.tools.func import lazy_property
 
 from .session import RedisSessionStore
+from .strtobool import strtobool
 
 _logger = logging.getLogger(__name__)
 
@@ -79,7 +78,7 @@ def purge_fs_sessions(path):
         try:
             os.unlink(path)
         except OSError:
-            pass
+            _logger.warning("OS Error during purge of redis sessions.")
 
 
 if redis and (
