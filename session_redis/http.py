@@ -99,7 +99,8 @@ if redis and (
             host,
             port,
         )
-    http.Application.session_store = session_store
+    if hasattr(http.Application, 'session_store'):
+        http.Application.session_store = session_store
     if config.get("redis_purge_filesystem_sessions"):
         # clean the existing sessions on the file system
         purge_fs_sessions(config.session_dir)
