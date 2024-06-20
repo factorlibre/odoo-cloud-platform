@@ -3,10 +3,10 @@
 
 import logging
 import os
+import shutil
 
 from odoo import http
 from odoo.tools import config
-from odoo.tools.func import lazy_property
 
 from .session import RedisSessionStore
 from .strtobool import strtobool
@@ -54,8 +54,7 @@ anon_expiration = os.environ.get(
 )
 
 
-@lazy_property
-def session_store(self):
+def get_redis_session_store():
     if sentinel_host:
         sentinel = Sentinel([(sentinel_host, sentinel_port)], password=password)
         redis_client = sentinel.master_for(sentinel_master_name)
@@ -74,9 +73,12 @@ def session_store(self):
 
 def purge_fs_sessions(path):
     for fname in os.listdir(path):
-        path = os.path.join(path, fname)
+        sessions_path = os.path.join(path, fname)
         try:
-            os.unlink(path)
+            if os.path.isdir(sessions_path):
+                shutil.rmtree(sessions_path)
+            else:
+                os.unlink(sessions_path)
         except OSError:
             _logger.warning("OS Error during purge of redis sessions.")
 
@@ -94,13 +96,13 @@ if redis and (
         )
     else:
         _logger.debug(
-            "HTTP sessions stored in Redis with prefix '%s' on " "%s:%s",
+            "HTTP sessions stored in Redis with prefix '%s' on %s:%s",
             prefix or "",
             host,
             port,
         )
-    if hasattr(http.Application, 'session_store'):
-        http.Application.session_store = session_store
+    redis_session_store = get_redis_session_store()
+    http.root.session_store = redis_session_store
     if config.get("redis_purge_filesystem_sessions"):
         # clean the existing sessions on the file system
         purge_fs_sessions(config.session_dir)
